@@ -1,14 +1,41 @@
+import { useEffect, useState } from "react";
 import { generateDatesFromYearBeginning } from "../utils/generate-dates-from-year-beginning.ts";
 import { HabitDay } from "./HabitDay";
+import { api } from "../lib/axios.ts";
+import dayjs from "dayjs";
 
-const weekDays = ['D','S','T','Q','Q','S','S'];
+// weekDays - Semana começa, dependendo do dia da semana do primeiro dia do ano
+const weekDays = ['S','T','Q','Q','S','S','D'];
 
 const sumaryDates = generateDatesFromYearBeginning()
 
 const minimumSumaryDatesSize = 18 * 7; //18 Weeks
 const amountOfDaysToFill = minimumSumaryDatesSize - sumaryDates.length;
 
+type Summary = Array<{
+    id: string,
+    date: string,
+    amount: number,
+    completed: number
+}>
+
+// outra forma de declaração do Array de Objetos
+/* {
+    id: string,
+    date: string,
+    amount: number,
+    completed: number
+}[] */
+
 export function SummaryTable() {
+    const [summary, setSummary] = useState<Summary>([])
+
+    useEffect(() => {
+        api.get('summary').then((response)=> {
+            setSummary(response.data);
+        })
+    }, []);
+
     return (
         <div className="w-full flex">
             <div className="grid grid-rows-7 grid-flow-row gap-3">
@@ -28,8 +55,19 @@ export function SummaryTable() {
 
 
             <div className="grid grid-rows-7 grid-flow-col gap-3">
-                {sumaryDates.map(date => {
-                    return <HabitDay key={date.toString()} />
+                {summary.length > 0 && sumaryDates.map(date => {
+                    const dayInSummary = summary.find(day => {
+                        return dayjs(date).isSame(day.date, 'day')
+                    })
+
+
+                    return (
+                        <HabitDay 
+                            key={date.toString()} 
+                            date={date}
+                            amount={dayInSummary?.amount} 
+                            defaultcompleted={dayInSummary?.completed} 
+                        />)
                 })}
 
                 { amountOfDaysToFill > 0 && Array.from({length:amountOfDaysToFill}).map((_,i) => {
